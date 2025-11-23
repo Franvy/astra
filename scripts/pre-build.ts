@@ -3,7 +3,7 @@ async function main() {
   console.log('Pre-build: No tasks to run');
 }
 
-await main().catch((e) => {
+main().catch((e) => {
   console.error('Failed to run pre build script', e);
   process.exit(1);
 });
