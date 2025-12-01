@@ -21,8 +21,8 @@ export const docs = defineDocs({
       method: z.string().optional(),
     }),
     postprocess: {
-      includeProcessedMarkdown: true,
-      extractLinkReferences: true,
+      includeProcessedMarkdown: false,
+      extractLinkReferences: false,
     },
     async: true,
   },

@@ -12,7 +12,9 @@ export function ShareButton({ url }: { url: string }) {
   return (
     <button
       type="button"
-      className={cn(buttonVariants({ className: 'gap-2' }))}
+      className={cn(
+        buttonVariants({ size: 'sm', variant: 'secondary', className: 'gap-2 dark:bg-blue-800' }),
+      )}
       onClick={onCopy}
     >
       {isChecked ? <Check className="size-4" /> : <Share className="size-4" />}

@@ -19,13 +19,26 @@ export default async function Page(props: PageProps<'/[slug]'>) {
 
   return (
     <article className="flex flex-col mx-auto w-full max-w-[800px] px-4 py-8">
-      <div className="flex flex-row gap-4 text-sm mb-8">
+
+
+      <h1 className="text-3xl font-semibold mb-4">{page.data.title}</h1>
+      <p className="text-fd-muted-foreground mb-8">{page.data.description}</p>
+
+      <div className="flex flex-row gap-4 items-center text-sm mb-8 not-prose">
+        <Link
+          href={`https://github.com/${page.data.author}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-full overflow-hidden w-6 h-6 flex-shrink-0 hover:opacity-80 transition-opacity"
+        >
+          <img
+            src={`https://s2.loli.net/2025/09/17/ToIiyLfOn49NPaG.png`}
+            alt={page.data.author}
+            className="w-full h-full object-cover block"
+          />
+        </Link>
         <div>
-          <p className="mb-1 text-fd-muted-foreground">Written by</p>
-          <p className="font-medium">{page.data.author}</p>
-        </div>
-        <div>
-          <p className="mb-1 text-sm text-fd-muted-foreground">At</p>
+          {/*<p className="mb-1 text-sm text-fd-muted-foreground">At</p>*/}
           <p className="font-medium">
             {new Date(
               page.data.date ??
@@ -34,9 +47,6 @@ export default async function Page(props: PageProps<'/[slug]'>) {
           </p>
         </div>
       </div>
-
-      <h1 className="text-3xl font-semibold mb-4">{page.data.title}</h1>
-      <p className="text-fd-muted-foreground mb-8">{page.data.description}</p>
 
       <div className="prose min-w-0 flex-1">
         <div className="flex flex-row items-center gap-2 mb-8 not-prose">
@@ -54,7 +64,7 @@ export default async function Page(props: PageProps<'/[slug]'>) {
           </Link>
         </div>
 
-        <InlineTOC items={toc} />
+        {/*<InlineTOC items={toc} />*/}
         <Mdx components={getMDXComponents()} />
       </div>
     </article>
