@@ -1,8 +1,6 @@
 import { type LinkItemType } from 'fumadocs-ui/layouts/docs';
-import Image from 'next/image';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { FumadocsIcon } from '@/app/layout.client';
-import Logo from '@/public/logo.png';
 
 export const linkItems: LinkItemType[] = [
   {
@@ -21,14 +19,6 @@ export const linkItems: LinkItemType[] = [
 
 export const logo = (
   <>
-    <Image
-      alt="Fumadocs"
-      src={Logo}
-      sizes="100px"
-      className="hidden w-22 in-[.uwu]:block"
-      aria-label="Fumadocs"
-    />
-
     <FumadocsIcon className="size-5 in-[.uwu]:hidden" />
   </>
 );

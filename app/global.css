@@ -125,3 +125,62 @@ body {
     transform: translateX(212px);
   }
 }
+
+/* View Transitions 页面切换动画 */
+@supports (view-transition-name: none) {
+  /* 启用平滑的页面切换 */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 旧页面淡出 */
+  ::view-transition-old(root) {
+    animation-name: fade-out;
+  }
+
+  /* 新页面淡入 */
+  ::view-transition-new(root) {
+    animation-name: fade-in;
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 减少切换时的闪烁 */
+  ::view-transition-group(root) {
+    animation-duration: 0.3s;
+  }
+}
+
+/* 文章页面淡入动画 */
+@keyframes article-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.article-fade-in {
+  animation: article-fade-in 0.5s ease-out forwards;
+}

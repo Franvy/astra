@@ -8,6 +8,9 @@ const withAnalyzer = createBundleAnalyzer({
 
 const config: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    viewTransitions: true,
+  },
   logging: {
     fetches: {
       fullUrl: true,
@@ -23,6 +26,18 @@ const config: NextConfig = {
   ],
   images: {
     remotePatterns: [
+        {
+            protocol: 'https',
+            hostname: 's2.loli.net',
+            port: '',
+            pathname: '/**',
+        },
+        {
+            protocol: 'https',
+            hostname: 'i.loli.net',  // SM.MS 使用的图片域名
+            port: '',
+            pathname: '/**', // 匹配所有路径
+        },
       {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',

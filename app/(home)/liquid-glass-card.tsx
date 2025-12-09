@@ -10,7 +10,7 @@ const GrainGradient = dynamic(
   }
 );
 
-export function LiquidGlassCard() {
+export function LiquidGlassCard({ onLoaded }: { onLoaded?: () => void }) {
   const [isDark, setIsDark] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -36,6 +36,16 @@ export function LiquidGlassCard() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (mounted) {
+      // 等待一个短暂的延迟确保 GrainGradient 完全渲染
+      const timer = setTimeout(() => {
+        onLoaded?.();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, onLoaded]);
+
   const theme = isDark
     ? {
         colors: ["#020617", "#0C4A6E", "#0369A1", "#0EA5E9"],
@@ -46,14 +56,9 @@ export function LiquidGlassCard() {
         bg: "rgba(115,209,76,0.08)",
       };
 
-  // 在客户端挂载完成前显示纯色背景
+  // 在客户端挂载完成前不显示
   if (!mounted) {
-    return (
-      <div
-        className="absolute inset-0 size-full -z-1 overflow-hidden"
-        style={{ backgroundColor: theme.bg }}
-      />
-    );
+    return null;
   }
 
   return (
