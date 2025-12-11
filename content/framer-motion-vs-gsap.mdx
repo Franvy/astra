@@ -1,0 +1,541 @@
+---
+title: Motion vs GSAP
+description: 对比 Motion（原 Framer Motion）和 GSAP 在 Next.js 中的使用场景
+author: Franvy
+date: 2025-08-11
+---
+
+
+![Motion](https://s2.loli.net/2025/12/11/xMruJth139HBdIA.gif)
+
+## 动画库的选择
+
+在 Next.js 项目中选择动画库时，主要有两个选择：
+
+- **Motion**（原 Framer Motion）：React 社区首选，声明式 API
+- **GSAP**：专业动画引擎，功能强大
+
+两个库各有优势，选择取决于具体场景。
+
+---
+
+## 重要更新：Framer Motion → Motion
+
+**2024 年底，Framer Motion 正式更名为 Motion**，包名从 `framer-motion` 变更为 `motion`：
+
+```bash
+# 新项目安装
+pnpm add motion
+
+# 旧项目迁移
+pnpm remove framer-motion
+pnpm add motion
+```
+
+**新的导入方式：**
+
+```tsx
+// 旧写法（已弃用）
+import { motion } from 'framer-motion';
+
+// 新写法
+import { motion } from 'motion/react';
+```
+
+---
+
+## 核心理念对比
+
+### Motion：声明式动画
+
+```tsx
+'use client';
+
+import { motion } from 'motion/react';
+
+function AnimatedBox() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      动画元素
+    </motion.div>
+  );
+}
+```
+
+**特点：**
+- 声明式 API，符合 React 思维
+- 自动处理挂载/卸载动画
+- 内置手势支持（拖拽、hover、tap）
+- 与 React 生命周期深度集成
+
+### GSAP：命令式动画
+
+```tsx
+'use client';
+
+import { useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
+
+function AnimatedBox() {
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(boxRef.current, {
+        opacity: 0,
+        y: 50,
+        duration: 0.5,
+        ease: 'power3.out',
+      });
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  return <div ref={boxRef}>动画元素</div>;
+}
+```
+
+**特点：**
+- 命令式 API，精确控制
+- 强大的时间轴系统
+- 100+ 缓动函数
+- 支持 SVG、Canvas、WebGL
+- 跨框架通用
+
+---
+
+## 打包体积与优化
+
+### Motion：LazyMotion 优化
+
+Motion 的默认 bundle 约 **34KB**（gzipped），但使用 `LazyMotion` 可减少到约 **6KB**：
+
+```tsx
+'use client';
+
+import { LazyMotion, domAnimation, m } from 'motion/react';
+
+// LazyMotion 按需加载动画功能
+export function App() {
+  return (
+    <LazyMotion features={domAnimation}>
+      {/* 使用 m 代替 motion */}
+      <m.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        优化后的动画
+      </m.div>
+    </LazyMotion>
+  );
+}
+```
+
+**LazyMotion 功能包：**
+- `domAnimation`：DOM 动画（~6KB），满足大部分需求
+- `domMax`：完整功能（~15KB），包含布局动画
+
+### GSAP：按需导入
+
+```tsx
+// ✅ 只导入需要的插件
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
+
+// ❌ 避免导入全部
+// import { gsap } from 'gsap/all';
+```
+
+**体积对比：**
+
+| 库 | Gzipped | 优化后 |
+|----|---------|--------|
+| **Motion** | ~34KB | ~6KB（LazyMotion） |
+| **GSAP Core** | ~17KB | - |
+| **GSAP + ScrollTrigger** | ~23KB | - |
+
+---
+
+## 场景决策
+
+```
+需要什么类型的动画？
+
+组件进入/退出动画 → Motion ✅
+
+手势交互（拖拽、滑动）→ Motion ✅
+
+复杂时间轴动画 → GSAP ✅
+
+滚动驱动动画
+- 简单触发 → Motion useInView
+- 复杂控制（scrub、pin）→ GSAP ScrollTrigger
+
+SVG 路径/变形动画 → GSAP ✅
+
+大量元素动画（100+）→ GSAP ✅
+```
+
+---
+
+## 实战案例
+
+### 案例 1：页面进入动画
+
+**Motion 方案（推荐）：**
+
+```tsx
+'use client';
+
+import { motion } from 'motion/react';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
+export default function HomePage() {
+  return (
+    <motion.div variants={container} initial="hidden" animate="show">
+      <motion.h1 variants={item}>欢迎来到我的网站</motion.h1>
+      <motion.p variants={item}>这是一段介绍文字</motion.p>
+      <motion.button variants={item}>立即开始</motion.button>
+    </motion.div>
+  );
+}
+```
+
+**GSAP 方案：**
+
+```tsx
+'use client';
+
+import { useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
+
+export default function HomePage() {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from('.animate-item', {
+        opacity: 0,
+        y: 20,
+        duration: 0.6,
+        stagger: 0.1,
+        ease: 'power3.out',
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <div ref={containerRef}>
+      <h1 className="animate-item">欢迎来到我的网站</h1>
+      <p className="animate-item">这是一段介绍文字</p>
+      <button className="animate-item">立即开始</button>
+    </div>
+  );
+}
+```
+
+---
+
+### 案例 2：滚动触发动画
+
+**Motion + useInView：**
+
+```tsx
+'use client';
+
+import { motion, useInView } from 'motion/react';
+import { useRef } from 'react';
+
+export function ScrollSection({ children }: { children: React.ReactNode }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+      transition={{ duration: 0.6 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+```
+
+**GSAP + ScrollTrigger（更强大）：**
+
+```tsx
+'use client';
+
+import { useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
+
+export function ScrollSection({ children }: { children: React.ReactNode }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(ref.current, {
+        opacity: 0,
+        y: 50,
+        scrollTrigger: {
+          trigger: ref.current,
+          start: 'top 80%',
+          end: 'top 50%',
+          scrub: 1, // 动画跟随滚动进度
+        },
+      });
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  return <div ref={ref}>{children}</div>;
+}
+```
+
+**ScrollTrigger 优势：**
+- `scrub`：动画跟随滚动进度
+- `pin`：固定元素
+- 精确的触发点控制
+
+---
+
+### 案例 3：拖拽交互
+
+**Motion（强烈推荐）：**
+
+```tsx
+'use client';
+
+import { motion } from 'motion/react';
+
+export function DraggableCard() {
+  return (
+    <motion.div
+      drag
+      dragConstraints={{ left: 0, right: 300, top: 0, bottom: 300 }}
+      dragElastic={0.2}
+      whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className="w-32 h-32 bg-blue-500 rounded-lg cursor-grab"
+    >
+      拖动我
+    </motion.div>
+  );
+}
+```
+
+Motion 的手势系统是其最大优势，GSAP 实现相同功能需要更多代码。
+
+---
+
+### 案例 4：布局动画
+
+**Motion layoutId（独有功能）：**
+
+```tsx
+'use client';
+
+import { motion } from 'motion/react';
+import { useState } from 'react';
+
+export function ExpandableCard() {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <motion.div
+      layout
+      onClick={() => setExpanded(!expanded)}
+      style={{
+        width: expanded ? 300 : 100,
+        height: expanded ? 200 : 100,
+      }}
+      className="bg-purple-500 rounded-lg cursor-pointer"
+    >
+      <motion.h2 layout="position">标题</motion.h2>
+    </motion.div>
+  );
+}
+```
+
+`layout` 属性自动处理尺寸变化的动画，这是 GSAP 难以复制的功能。
+
+---
+
+## 性能优化
+
+### Motion 优化
+
+1. **使用 LazyMotion 减少 bundle**
+
+```tsx
+import { LazyMotion, domAnimation, m } from 'motion/react';
+
+function App() {
+  return (
+    <LazyMotion features={domAnimation} strict>
+      <m.div animate={{ opacity: 1 }} />
+    </LazyMotion>
+  );
+}
+```
+
+2. **尊重用户偏好**
+
+```tsx
+import { useReducedMotion, motion } from 'motion/react';
+
+function MyComponent() {
+  const shouldReduceMotion = useReducedMotion();
+
+  return (
+    <motion.div
+      animate={{ opacity: 1 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
+    />
+  );
+}
+```
+
+3. **使用 `layout` 属性优化布局动画**
+
+```tsx
+// 自动处理布局变化，无需手动计算
+<motion.div layout>
+  {isExpanded && <ExtraContent />}
+</motion.div>
+```
+
+### GSAP 优化
+
+1. **使用 context() 管理清理**
+
+```tsx
+useEffect(() => {
+  const ctx = gsap.context(() => {
+    gsap.to('.box', { x: 100 });
+    gsap.to('.circle', { rotation: 360 });
+  });
+
+  return () => ctx.revert(); // 一次性清理所有动画
+}, []);
+```
+
+2. **使用 quickTo() 优化高频动画**
+
+```tsx
+const xTo = gsap.quickTo(boxRef.current, 'x', { duration: 0.3 });
+const yTo = gsap.quickTo(boxRef.current, 'y', { duration: 0.3 });
+
+function handleMouseMove(e: MouseEvent) {
+  xTo(e.clientX);
+  yTo(e.clientY);
+}
+```
+
+3. **使用 matchMedia() 响应式动画**
+
+```tsx
+useEffect(() => {
+  const mm = gsap.matchMedia();
+
+  mm.add('(min-width: 768px)', () => {
+    gsap.to('.box', { x: 200 });
+  });
+
+  mm.add('(max-width: 767px)', () => {
+    gsap.to('.box', { x: 50 });
+  });
+
+  return () => mm.revert();
+}, []);
+```
+
+---
+
+## 混合使用策略
+
+在实际项目中，可以同时使用两个库：
+
+```tsx
+'use client';
+
+import { motion } from 'motion/react';
+import { useRef, useEffect } from 'react';
+import { gsap } from 'gsap';
+
+export function HybridAnimation() {
+  const complexRef = useRef(null);
+
+  // GSAP 处理复杂的循环动画
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ repeat: -1 });
+      tl.to(complexRef.current, { rotation: 360, duration: 2 })
+        .to(complexRef.current, { scale: 1.5, duration: 1 })
+        .to(complexRef.current, { scale: 1, duration: 1 });
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <div>
+      {/* Motion 处理进入动画 */}
+      <motion.h1
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        混合使用
+      </motion.h1>
+
+      {/* GSAP 处理复杂动画 */}
+      <div ref={complexRef} className="w-20 h-20 bg-purple-500 rounded-full" />
+    </div>
+  );
+}
+```
+
+**推荐分工：**
+
+| 功能 | 推荐 |
+|------|------|
+| 组件进入/退出 | Motion |
+| 手势交互 | Motion |
+| 布局动画 | Motion |
+| 复杂时间轴 | GSAP |
+| 滚动驱动（scrub） | GSAP |
+| SVG 路径动画 | GSAP |
+| 大量元素动画 | GSAP |
+
+---
+
+**两者是互补关系**：Motion 适合 70% 的常规动画需求，GSAP 处理剩余 30% 的复杂场景。根据具体需求选择最合适的工具。

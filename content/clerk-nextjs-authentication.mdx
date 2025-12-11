@@ -1,0 +1,376 @@
+---
+title: Clerk + Next.js 认证方案
+description: 使用 Clerk 在 Next.js 应用中实现企业级身份认证
+author: Franvy
+date: 2025-12-01
+---
+
+![](https://s2.loli.net/2025/12/11/qAJjP7MIGEshxS6.png)
+
+## 为什么选择 Clerk？
+
+身份认证是 Web 应用最基础却最复杂的功能。传统方案需要处理用户注册登录、Session/JWT 管理、OAuth 集成、MFA、密码重置等一系列问题。
+
+**Clerk 是一套完整的用户管理基础设施**，让你在 30 分钟内实现生产级认证系统。
+
+### 核心优势
+
+- **开箱即用的 UI 组件**：登录、注册、用户中心一行代码搞定
+- **多租户原生支持**：Organizations 功能完美适配 SaaS 场景
+- **边缘友好**：JWT 验证可在 CDN 边缘完成，延迟极低
+- **实时同步**：跨标签页、跨设备的 Session 自动同步
+
+---
+
+## 快速开始
+
+### 安装
+
+```bash
+pnpm add @clerk/nextjs
+```
+
+### 环境变量
+
+创建 `.env.local`：
+
+```bash
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
+CLERK_SECRET_KEY=sk_test_xxxxx
+```
+
+### 配置 Provider
+
+```tsx
+// app/layout.tsx
+import { ClerkProvider } from '@clerk/nextjs';
+import { zhCN } from '@clerk/localizations';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <ClerkProvider localization={zhCN}>
+      <html lang="zh-CN">
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
+  );
+}
+```
+
+### 配置中间件
+
+> **重要**：Clerk v5+ 默认不保护任何路由，你需要显式声明需要保护的路由。
+
+```typescript
+// middleware.ts
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/api/protected(.*)',
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+  }
+});
+
+export const config = {
+  matcher: [
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
+};
+```
+
+---
+
+## 客户端使用
+
+### 基础组件
+
+```tsx
+'use client';
+
+import { useUser, SignInButton, UserButton } from '@clerk/nextjs';
+
+export function Header() {
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  if (!isLoaded) return <div>加载中...</div>;
+
+  if (!isSignedIn) {
+    return (
+      <SignInButton mode="modal">
+        <button className="btn-primary">登录</button>
+      </SignInButton>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-4">
+      <span>欢迎，{user.firstName}</span>
+      <UserButton />
+    </div>
+  );
+}
+```
+
+### 获取 Token 调用后端
+
+```tsx
+'use client';
+
+import { useAuth } from '@clerk/nextjs';
+
+export function DataFetcher() {
+  const { getToken } = useAuth();
+
+  async function fetchData() {
+    const token = await getToken();
+    const res = await fetch('/api/protected', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  }
+
+  return <button onClick={fetchData}>获取数据</button>;
+}
+```
+
+---
+
+## 服务端使用
+
+### Server Components
+
+```tsx
+// app/dashboard/page.tsx
+import { currentUser } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+
+export default async function DashboardPage() {
+  const user = await currentUser();
+
+  if (!user) redirect('/sign-in');
+
+  return (
+    <div>
+      <h1>欢迎，{user.firstName}</h1>
+      <p>邮箱：{user.emailAddresses[0].emailAddress}</p>
+    </div>
+  );
+}
+```
+
+### API Routes
+
+```typescript
+// app/api/protected/route.ts
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // 你的业务逻辑
+  return NextResponse.json({ userId, message: 'Hello!' });
+}
+```
+
+---
+
+## 高级功能
+
+### 基于角色的权限控制
+
+```typescript
+// middleware.ts
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+
+const isAdminRoute = createRouteMatcher(['/admin(.*)']);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isAdminRoute(req)) {
+    const { sessionClaims } = await auth();
+
+    if (sessionClaims?.metadata?.role !== 'admin') {
+      return Response.redirect(new URL('/forbidden', req.url));
+    }
+  }
+});
+```
+
+### 组织管理（多租户）
+
+```tsx
+'use client';
+
+import { useOrganization, OrganizationSwitcher } from '@clerk/nextjs';
+
+export function OrgManager() {
+  const { organization, membership } = useOrganization();
+
+  return (
+    <div>
+      <p>当前组织：{organization?.name}</p>
+      <p>你的角色：{membership?.role}</p>
+      <OrganizationSwitcher />
+    </div>
+  );
+}
+```
+
+### Webhook 同步数据
+
+```typescript
+// app/api/webhooks/clerk/route.ts
+import { Webhook } from 'svix';
+import { headers } from 'next/headers';
+
+export async function POST(req: Request) {
+  const headerPayload = await headers();
+  const svix_id = headerPayload.get('svix-id');
+  const svix_timestamp = headerPayload.get('svix-timestamp');
+  const svix_signature = headerPayload.get('svix-signature');
+
+  if (!svix_id || !svix_timestamp || !svix_signature) {
+    return new Response('Missing headers', { status: 400 });
+  }
+
+  const payload = await req.json();
+  const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET!);
+
+  try {
+    const evt = wh.verify(JSON.stringify(payload), {
+      'svix-id': svix_id,
+      'svix-timestamp': svix_timestamp,
+      'svix-signature': svix_signature,
+    }) as { type: string; data: any };
+
+    // 处理不同事件
+    switch (evt.type) {
+      case 'user.created':
+        // 同步用户到数据库
+        break;
+      case 'user.updated':
+        // 更新用户信息
+        break;
+      case 'user.deleted':
+        // 删除用户
+        break;
+    }
+
+    return new Response('OK', { status: 200 });
+  } catch {
+    return new Response('Invalid signature', { status: 400 });
+  }
+}
+```
+
+---
+
+## 自定义登录 UI
+
+如果你想完全控制 UI，可以使用 Clerk 的无头 API：
+
+```tsx
+'use client';
+
+import { useSignIn } from '@clerk/nextjs';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function CustomSignIn() {
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!isLoaded) return;
+
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || '登录失败');
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="邮箱"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="密码"
+      />
+      {error && <p className="text-red-500">{error}</p>}
+      <button type="submit">登录</button>
+    </form>
+  );
+}
+```
+
+---
+
+## 生产环境检查清单
+
+上线前确保完成：
+
+- [ ] 启用 MFA（多因素认证）
+- [ ] 配置自定义域名
+- [ ] 设置 Webhook 签名验证
+- [ ] 配置登录失败速率限制
+- [ ] 自定义邮件模板
+- [ ] 规划用户元数据结构
+- [ ] 配置 GDPR 合规策略
+
+---
+
+## 总结
+
+**适合使用 Clerk：**
+- 快速上线的 MVP
+- SaaS 多租户应用
+- 希望专注业务逻辑
+- 团队规模较小
+
+**考虑其他方案：**
+- 对成本敏感（免费额度有限）
+- 需要私有化部署
+- 有非常特殊的认证需求
+
+Clerk 让认证变得简单，让你专注于真正重要的业务逻辑。
+
+---
+
+**参考资料：**
+- [Clerk 官方文档](https://clerk.com/docs)
+- [clerkMiddleware API](https://clerk.com/docs/reference/nextjs/clerk-middleware)
+- [Next.js 认证指南](https://clerk.com/articles/complete-authentication-guide-for-nextjs-app-router)

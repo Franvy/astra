@@ -1,0 +1,536 @@
+---
+title: ShadcnUI 在 Next.js 中的使用
+description: 基于 Radix UI 和 Tailwind CSS v4 构建现代组件库
+author: Franvy
+date: 2025-06-23
+---
+
+![](https://s2.loli.net/2025/12/11/UHGZEA3RaJosjSz.png)
+
+## ShadcnUI 的核心理念
+
+传统组件库 vs ShadcnUI：
+
+```bash
+# 传统方式：安装黑盒依赖
+npm install antd  # 整个库进入 node_modules
+
+# ShadcnUI：复制源码到项目
+npx shadcn@latest add button  # 代码在你的项目中
+```
+
+**核心区别**：你拥有代码的所有权，可以随意修改。
+
+---
+
+## 2025 年重大更新
+
+### Tailwind v4 + React 19
+
+2025 年 2 月，shadcn/ui 全面支持 Tailwind v4 和 React 19：
+
+```bash
+# 新项目自动使用 Tailwind v4
+npx shadcn@latest init
+```
+
+**主要变化：**
+
+- **OKLCH 颜色**：HSL 颜色迁移到 OKLCH
+- **@theme 指令**：新的主题配置方式
+- **data-slot 属性**：每个组件原语都有 data-slot 便于样式化
+- **移除 forwardRef**：React 19 不再需要
+
+### shadcn CLI 3.0（2025年8月）
+
+```bash
+# 命名空间注册表
+npx shadcn add @shadcn/button
+npx shadcn add @mycompany/data-table
+
+# 搜索组件
+npx shadcn search "date picker"
+
+# MCP Server 支持
+npx shadcn registry:mcp
+```
+
+**新特性：**
+- 命名空间注册表 `@registry/name`
+- 私有注册表支持
+- 搜索和发现命令
+- 完全重写的解析引擎
+
+### 弃用内容
+
+```bash
+# ❌ 已弃用
+tailwindcss-animate  →  tw-animate-css
+toast 组件           →  sonner
+default 样式         →  new-york（默认）
+```
+
+---
+
+## 快速开始
+
+### 项目初始化
+
+```bash
+# 创建 Next.js 项目
+pnpm create next-app@latest my-app
+cd my-app
+
+# 初始化 shadcn（自动检测 Tailwind v4）
+npx shadcn@latest init
+```
+
+配置选项：
+
+```
+✔ Which style would you like to use? › New York
+✔ Which color would you like to use as base color? › Zinc
+✔ Would you like to use CSS variables for colors? › yes
+```
+
+**推荐选择：**
+- **New York 风格**：2025 年默认样式，更现代
+- **Zinc 配色**：中性灰，适配任何品牌色
+- **CSS 变量**：方便主题切换
+
+### 添加组件
+
+```bash
+# 添加单个组件
+npx shadcn add button
+
+# 添加多个组件
+npx shadcn add button card dialog
+
+# 从社区注册表添加
+npx shadcn add @shadcn/chart
+```
+
+---
+
+## Tailwind v4 主题配置
+
+### 新的 CSS 配置方式
+
+Tailwind v4 使用 CSS 原生的 `@theme` 指令：
+
+```css
+/* app/globals.css */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: oklch(100% 0 0);
+  --color-foreground: oklch(14.9% 0.017 285.8);
+  --color-primary: oklch(20.8% 0.022 285.8);
+  --color-primary-foreground: oklch(98.5% 0 0);
+  --color-secondary: oklch(96.7% 0.001 286.4);
+  --color-muted: oklch(96.7% 0.001 286.4);
+  --color-accent: oklch(96.7% 0.001 286.4);
+  --color-destructive: oklch(57.7% 0.245 27.3);
+  --color-border: oklch(91.4% 0.006 286.3);
+  --color-ring: oklch(70.9% 0.01 286);
+  --radius: 0.625rem;
+}
+
+.dark {
+  --color-background: oklch(14.9% 0.017 285.8);
+  --color-foreground: oklch(98.5% 0 0);
+  --color-primary: oklch(98.5% 0 0);
+  --color-primary-foreground: oklch(20.8% 0.022 285.8);
+  --color-secondary: oklch(26.9% 0.015 285.9);
+  --color-muted: oklch(26.9% 0.015 285.9);
+  --color-accent: oklch(26.9% 0.015 285.9);
+  --color-destructive: oklch(65.1% 0.222 19.1);
+  --color-border: oklch(26.9% 0.015 285.9);
+  --color-ring: oklch(44.2% 0.017 285.8);
+}
+```
+
+**为什么使用 OKLCH？**
+- 更均匀的色彩感知
+- 更好的深色模式过渡
+- 更准确的颜色计算
+
+---
+
+## 核心组件解析
+
+### Button 组件（React 19 版本）
+
+```tsx
+// components/ui/button.tsx
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+// React 19: 不再需要 forwardRef
+function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}: React.ComponentProps<"button"> & VariantProps<typeof buttonVariants> & {
+  asChild?: boolean
+}) {
+  const Comp = asChild ? Slot : "button"
+  return (
+    <Comp
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
+}
+
+export { Button, buttonVariants }
+```
+
+**React 19 变化：**
+- 移除 `forwardRef`，直接使用函数组件
+- 添加 `data-slot="button"` 属性
+- 类型使用 `React.ComponentProps<"button">`
+
+### 使用示例
+
+```tsx
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+
+export function ButtonDemo() {
+  return (
+    <div className="flex gap-4">
+      <Button>默认按钮</Button>
+      <Button variant="destructive">删除</Button>
+      <Button variant="outline">轮廓</Button>
+      <Button variant="ghost">幽灵</Button>
+
+      {/* asChild 渲染为 Link */}
+      <Button asChild>
+        <Link href="/dashboard">跳转</Link>
+      </Button>
+    </div>
+  )
+}
+```
+
+---
+
+## Sonner Toast（替代 toast 组件）
+
+shadcn/ui 现在推荐使用 Sonner 替代原有的 toast 组件：
+
+```bash
+npx shadcn add sonner
+```
+
+```tsx
+// app/layout.tsx
+import { Toaster } from "@/components/ui/sonner"
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        {children}
+        <Toaster />
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx
+// 使用
+import { toast } from "sonner"
+
+function MyComponent() {
+  return (
+    <Button onClick={() => toast.success("保存成功！")}>
+      保存
+    </Button>
+  )
+}
+```
+
+---
+
+## Monorepo 支持
+
+shadcn CLI 现在原生支持 Monorepo：
+
+```bash
+# 在 monorepo 中添加组件
+npx shadcn add login-01
+```
+
+CLI 会自动：
+- 将 `button`、`input`、`card` 安装到 `packages/ui`
+- 将 `login-form` 安装到 `apps/web/components`
+- 正确处理所有导入路径
+
+**Turborepo 配置示例：**
+
+```json
+// packages/ui/package.json
+{
+  "name": "@workspace/ui",
+  "exports": {
+    "./button": "./src/components/button.tsx",
+    "./card": "./src/components/card.tsx"
+  }
+}
+```
+
+```tsx
+// apps/web/app/page.tsx
+import { Button } from "@workspace/ui/button"
+import { Card } from "@workspace/ui/card"
+```
+
+---
+
+## 深色模式
+
+### 使用 next-themes
+
+```bash
+pnpm add next-themes
+```
+
+```tsx
+// app/providers.tsx
+"use client"
+
+import { ThemeProvider } from "next-themes"
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      {children}
+    </ThemeProvider>
+  )
+}
+```
+
+```tsx
+// components/theme-toggle.tsx
+"use client"
+
+import { useTheme } from "next-themes"
+import { Moon, Sun } from "lucide-react"
+import { Button } from "@/components/ui/button"
+
+export function ThemeToggle() {
+  const { theme, setTheme } = useTheme()
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+    >
+      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">切换主题</span>
+    </Button>
+  )
+}
+```
+
+---
+
+## 自定义变体
+
+### 扩展 Button 变体
+
+```tsx
+// components/ui/button.tsx
+const buttonVariants = cva(
+  // 基础样式...
+  {
+    variants: {
+      variant: {
+        // 原有变体...
+
+        // 自定义变体
+        gradient: "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl",
+        success: "bg-green-600 text-white shadow-sm hover:bg-green-700",
+      },
+      size: {
+        // 原有尺寸...
+
+        // 自定义尺寸
+        xl: "h-12 rounded-lg px-10 text-base",
+      },
+    },
+  }
+)
+```
+
+```tsx
+<Button variant="gradient" size="xl">
+  立即开始
+</Button>
+```
+
+---
+
+## 性能优化
+
+### 按需加载组件
+
+```tsx
+// app/dashboard/page.tsx
+import { lazy, Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+const DataTable = lazy(() => import("@/components/data-table"))
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+      <DataTable />
+    </Suspense>
+  )
+}
+```
+
+### Tailwind v4 优化
+
+Tailwind v4 自动进行 tree-shaking，无需额外配置：
+
+```ts
+// tailwind.config.ts 已不再需要
+// Tailwind v4 使用 CSS 原生配置
+```
+
+---
+
+## 实战：Dashboard 布局
+
+```tsx
+// app/dashboard/page.tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+
+export default function Dashboard() {
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">仪表盘</h1>
+          <p className="text-muted-foreground">欢迎回来</p>
+        </div>
+        <Button>创建项目</Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.change}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>最近活动</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activities.map((activity) => (
+            <div key={activity.id} className="flex items-center gap-4 py-2">
+              <div className="flex-1">
+                <p className="text-sm font-medium">{activity.user}</p>
+                <p className="text-xs text-muted-foreground">{activity.action}</p>
+              </div>
+              <Badge variant={activity.status === "success" ? "default" : "secondary"}>
+                {activity.status}
+              </Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+```
+
+---
+
+## 总结
+
+### ShadcnUI 2025 要点
+
+| 特性 | 说明 |
+|------|------|
+| **Tailwind v4** | OKLCH 颜色、@theme 指令 |
+| **React 19** | 移除 forwardRef、data-slot |
+| **CLI 3.0** | 命名空间注册表、MCP Server |
+| **默认样式** | New York（弃用 default） |
+| **Toast** | 使用 Sonner（弃用原 toast） |
+| **动画** | tw-animate-css（弃用 tailwindcss-animate） |
+
+### 适用场景
+
+✅ Next.js + Tailwind CSS 项目
+✅ 需要高度定制的产品
+✅ 希望完全控制组件实现
+✅ 构建自己的设计系统
+
+### 不适用场景
+
+❌ 需要大量开箱即用组件（如复杂数据表格）
+❌ 团队不熟悉 Tailwind CSS
+❌ 需要组件库自动更新
+
+---
+
+**参考资料：**
+- [shadcn/ui Tailwind v4](https://ui.shadcn.com/docs/tailwind-v4)
+- [shadcn/ui Changelog](https://ui.shadcn.com/docs/changelog)
+- [shadcn/ui Monorepo](https://ui.shadcn.com/docs/monorepo)
+- [shadcn CLI 3.0](https://ui.shadcn.com/docs/cli)

@@ -5,6 +5,8 @@ import { blog } from '@/lib/source';
 import { createMetadata } from '@/lib/metadata';
 import { getMDXComponents } from '@/mdx-components';
 import path from 'node:path';
+import { ArticleNavController } from './article-nav-controller';
+import { HideNavBar } from './hide-navbar';
 
 export default async function Page(props: PageProps<'/[slug]'>) {
   const params = await props.params;
@@ -14,10 +16,14 @@ export default async function Page(props: PageProps<'/[slug]'>) {
   const { body: Mdx } = await page.data.load();
 
   return (
-    <article className="flex flex-col mx-auto w-full max-w-[750px] px-4 py-8 article-fade-in">
+    <>
+        <HideNavBar />
+        <ArticleNavController />
+
+        <article className="article-page flex flex-col mx-auto w-full max-w-[750px] px-4 py-8 md:pt-8 article-fade-in">
 
 
-      <h1 className="text-4xl text-gray-200 font-semibold mt-16 mb-10 font-[family-name:var(--font-nunito)]">{page.data.title}</h1>
+      <h1 className="text-4xl dark:text-gray-200 font-semibold mt-16 mb-10 font-[family-name:var(--font-nunito)]">{page.data.title}</h1>
       <p className="text-fd-muted-foreground mb-10 font-[family-name:var(--font-nunito)]">来自「Franvy」分享的技术方案和生活博客</p>
 
       <div className="flex flex-row gap-2 items-center text-sm mb-8 not-prose font-[family-name:var(--font-nunito)]">
@@ -54,6 +60,7 @@ export default async function Page(props: PageProps<'/[slug]'>) {
         <Mdx components={getMDXComponents()} />
       </div>
     </article>
+    </>
   );
 }
 

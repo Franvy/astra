@@ -88,6 +88,9 @@ export default defineConfig({
     const { default: rehypeKatex } = await import('rehype-katex');
     const { remarkAutoTypeTable } = await import('fumadocs-typescript');
 
+    // 在开发模式下禁用 Twoslash 以减少内存占用
+    const isDev = process.env.NODE_ENV === 'development';
+
     return {
       rehypeCodeOptions: {
         langs: ['ts', 'js', 'html', 'tsx', 'mdx'],
@@ -98,9 +101,12 @@ export default defineConfig({
         },
         transformers: [
           ...(rehypeCodeDefaultOptions.transformers ?? []),
-          transformerTwoslash({
-            typesCache: createFileSystemTypesCache(),
-          }),
+          // 仅在生产模式下启用 Twoslash，开发模式下禁用以节省内存
+          ...(isDev ? [] : [
+            transformerTwoslash({
+              typesCache: createFileSystemTypesCache(),
+            }),
+          ]),
           transformerEscape(),
         ],
       },

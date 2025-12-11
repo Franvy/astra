@@ -1,0 +1,32 @@
+---
+title: Spring Boot 热加载
+author: Franvy
+date: 2023-11-04
+description: IDEA热加载官方方案，更轻量
+---
+
+# Spring Boot 热加载
+
+在 **Spring Boot** 开发中，利用**Spring DevTools**配合 IntelliJ IDEA 的自动编译功能，可以实现修改代码后无需手动重启服务，提升开发效率。
+
+### 第一步：添加项目依赖
+
+**Maven**中添加`spring-boot-devtools`。
+```xml
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-devtools</artifactId>
+  <scope>runtime</scope>
+  <optional>true</optional>
+</dependency>
+```
+
+### 第二步：开启 IDEA 自动编译
+
+开启**Build project automatically**
+![](https://s2.loli.net/2025/12/11/WTCqdSEAu4wJYzh.png)
+
+开启Allow auto-make to start even if developed application is currently running
+![](https://s2.loli.net/2025/12/11/8sQK1ZdN7EchbUf.png)
+
+其实到了这一步，启动SpringBoot项目，修改项目中的代码后就会自动重载，这样真的会方便很多，不需要再频繁点击调试，当然JRebel插件功能更加强大，完善，但是因为经常掉订阅和相对来说太重了，所以我就放弃了。

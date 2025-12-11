@@ -8,9 +8,6 @@ const withAnalyzer = createBundleAnalyzer({
 
 const config: NextConfig = {
   reactStrictMode: true,
-  experimental: {
-    viewTransitions: true,
-  },
   logging: {
     fetches: {
       fullUrl: true,
@@ -44,6 +41,36 @@ const config: NextConfig = {
         port: '',
       },
     ],
+  },
+  // Webpack 内存优化配置
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      // 开发模式下的内存优化
+      config.optimization = {
+        ...config.optimization,
+        // 减少内存使用
+        minimize: false,
+        // 移除未使用的导出
+        usedExports: true,
+        // 减少模块图
+        removeAvailableModules: true,
+        // 移除空的 chunks
+        removeEmptyChunks: true,
+      };
+
+      // 减少并行处理数量以降低内存峰值
+      config.parallelism = 1;
+
+      // 禁用源映射以节省内存（开发时可选）
+      // config.devtool = false;
+    }
+
+    // 配置外部化某些大型依赖，减少打包体积
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'shiki', 'twoslash'];
+    }
+
+    return config;
   },
   async rewrites() {
     return [];

@@ -3,12 +3,18 @@ import * as FilesComponents from 'fumadocs-ui/components/files';
 import * as TabsComponents from 'fumadocs-ui/components/tabs';
 import type { MDXComponents } from 'mdx/types';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import * as icons from 'lucide-react';
 import Image from 'next/image';
+
+// 只导入实际使用的图标，避免加载整个 lucide-react 库（1000+ 图标）
+// 如需使用图标，请在此处按需导入，例如：
+// import { Icon1, Icon2 } from 'lucide-react';
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
-    ...(icons as unknown as MDXComponents),
+    // 移除了 ...(icons as unknown as MDXComponents) 以减少内存占用
+    // 如需使用特定图标，请在此处添加：
+    // Icon1,
+    // Icon2,
     ...defaultMdxComponents,
     ...TabsComponents,
     ...FilesComponents,

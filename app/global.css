@@ -184,3 +184,11 @@ body {
 .article-fade-in {
   animation: article-fade-in 0.5s ease-out forwards;
 }
+
+/* 导航栏平滑过渡 */
+@supports (backdrop-filter: blur(12px)) {
+  .backdrop-blur-lg {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}

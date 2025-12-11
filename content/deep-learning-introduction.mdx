@@ -1,0 +1,314 @@
+---
+title: 神经网络的基础原理
+description: 深度学习模型，讲解神经网络原理、模型架构选择和工具链使用
+author: Franvy
+date: 2025-02-11
+---
+
+![](https://s2.loli.net/2025/12/11/UXHhgv3Jkb5nuqR.png)
+
+## 深度学习入门
+
+作为开发者，接触深度学习时最大的困惑往往是：概念太多、数学太难、不知道从哪开始。
+
+这篇文章从**代码和实战**出发，帮你建立直觉，而不是堆砌公式。
+
+---
+
+## 神经网络就是一个函数
+
+把深度学习想象成这样：
+
+```python
+# 传统编程：你写规则
+def is_spam(email: str) -> bool:
+    if "中奖" in email or "点击链接" in email:
+        return True
+    return False
+
+# 深度学习：机器从数据中学习规则
+model = train_neural_network(training_data)
+is_spam = model.predict(email)
+```
+
+**核心区别：** 传统编程你写规则，深度学习让机器从数据中学习规则。
+
+---
+
+## 最简单的神经元
+
+```python
+import numpy as np
+
+def neuron(inputs, weights, bias):
+    z = np.dot(inputs, weights) + bias  # 线性变换
+    output = 1 / (1 + np.exp(-z))  # 激活函数（Sigmoid）
+    return output
+
+inputs = np.array([1.0, 2.0, 3.0])
+weights = np.array([0.5, -1.0, 0.8])
+bias = 0.1
+
+result = neuron(inputs, weights, bias)
+print(result)  # 0.731...
+```
+
+多层神经元连接起来，就是神经网络：
+
+```
+输入层 → 隐藏层 → 输出层
+[1,2,3] → [neurons] → [0.8] (概率)
+```
+
+---
+
+## 用 PyTorch 构建神经网络
+
+### 定义模型
+
+```python
+import torch
+import torch.nn as nn
+
+class SimpleNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Linear(3, 5)
+        self.layer2 = nn.Linear(5, 1)
+
+    def forward(self, x):
+        x = torch.relu(self.layer1(x))
+        x = torch.sigmoid(self.layer2(x))
+        return x
+
+model = SimpleNN()
+output = model(torch.tensor([1.0, 2.0, 3.0]))
+print(output)  # tensor([0.5234])
+```
+
+### 训练模型
+
+```python
+import torch.optim as optim
+
+criterion = nn.BCELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+X = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+y = torch.tensor([[0.0], [1.0]])
+
+for epoch in range(100):
+    outputs = model(X)
+    loss = criterion(outputs, y)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if (epoch + 1) % 20 == 0:
+        print(f'Epoch {epoch+1}, Loss: {loss.item():.4f}')
+```
+
+**Loss 越小，模型越准确。**
+
+---
+
+## 激活函数选择
+
+```python
+import torch.nn.functional as F
+
+x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+
+F.relu(x)      # [0, 0, 0, 1, 2] - 默认选择
+torch.sigmoid(x)  # [0.12, 0.27, 0.5, 0.73, 0.88] - 二分类输出
+F.softmax(x, dim=0)  # 概率分布 - 多分类输出
+```
+
+**简单记：**
+- 隐藏层用 ReLU
+- 二分类输出用 Sigmoid
+- 多分类输出用 Softmax
+
+---
+
+## 模型选择指南
+
+```
+你的任务是什么？
+
+图像处理 → CNN / Vision Transformer
+- 推荐：ResNet、EfficientNet、ViT
+
+文本处理 → Transformer
+- 推荐：BERT（理解）、GPT（生成）
+
+大语言模型 → LLM
+- 推荐：LLaMA、Mistral、Qwen
+
+表格数据 → 传统 ML 往往更好
+- 推荐：XGBoost、LightGBM
+```
+
+---
+
+## 实战：使用预训练模型
+
+**不要从头训练！** 使用预训练模型可以节省 90% 的时间。
+
+### 文本分类（一行代码）
+
+```python
+from transformers import pipeline
+
+classifier = pipeline("sentiment-analysis")
+result = classifier("I love this product!")
+print(result)  # [{'label': 'POSITIVE', 'score': 0.9998}]
+```
+
+### 图像分类
+
+```python
+import torch
+from torchvision import models
+from torchvision.models import ResNet18_Weights
+
+# 新 API：使用 weights 参数（pretrained 已弃用）
+weights = ResNet18_Weights.DEFAULT
+model = models.resnet18(weights=weights)
+model.eval()
+
+# 使用内置的预处理变换
+preprocess = weights.transforms()
+
+# 推理
+from PIL import Image
+img = Image.open("cat.jpg")
+batch = preprocess(img).unsqueeze(0)
+
+with torch.no_grad():
+    prediction = model(batch).squeeze(0).softmax(0)
+    class_id = prediction.argmax().item()
+    score = prediction[class_id].item()
+
+print(f"类别: {weights.meta['categories'][class_id]}, 置信度: {score:.2%}")
+```
+
+### 微调预训练模型
+
+```python
+from torchvision.models import ResNet18_Weights
+import torch.nn as nn
+
+weights = ResNet18_Weights.DEFAULT
+model = models.resnet18(weights=weights)
+
+# 冻结预训练层
+for param in model.parameters():
+    param.requires_grad = False
+
+# 替换分类头
+model.fc = nn.Linear(512, 2)  # 2 分类
+
+# 只训练新添加的层
+optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.001)
+```
+
+---
+
+## PyTorch 2.0：torch.compile 加速
+
+```python
+import torch
+
+model = YourModel()
+
+# 一行代码加速 2x
+model = torch.compile(model)
+
+# 推理
+with torch.no_grad():
+    output = model(input_data)
+```
+
+`torch.compile` 会自动优化计算图，通常能带来 **30%-200%** 的加速。
+
+---
+
+## 部署到生产
+
+### FastAPI 服务
+
+```python
+from fastapi import FastAPI, UploadFile
+import torch
+from PIL import Image
+import io
+
+app = FastAPI()
+model = torch.load('model.pth')
+model.eval()
+
+@app.post("/predict")
+async def predict(file: UploadFile):
+    image = Image.open(io.BytesIO(await file.read()))
+    # 预处理 + 推理
+    with torch.no_grad():
+        output = model(preprocess(image).unsqueeze(0))
+    return {"prediction": output.argmax().item()}
+```
+
+### ONNX 跨平台
+
+```python
+import torch
+
+model.eval()
+dummy_input = torch.randn(1, 3, 224, 224)
+
+torch.onnx.export(
+    model, dummy_input, "model.onnx",
+    opset_version=17,
+    input_names=['input'],
+    output_names=['output']
+)
+
+# ONNX Runtime 推理
+import onnxruntime as ort
+session = ort.InferenceSession("model.onnx")
+output = session.run(None, {"input": input_data.numpy()})
+```
+
+---
+
+## 工具链推荐
+
+```bash
+# 核心
+pip install torch torchvision
+pip install transformers datasets  # Hugging Face
+
+# 可视化
+pip install wandb  # 实验追踪（推荐）
+
+# 加速
+pip install lightning  # 简化训练代码
+pip install timm  # 图像模型库
+```
+
+### PyTorch vs TensorFlow
+
+| 场景 | 推荐 |
+|------|------|
+| 学习和研究 | PyTorch |
+| 快速原型 | PyTorch |
+| 移动端部署 | TensorFlow Lite |
+| 边缘设备 | ONNX Runtime |
+
+**2025 年趋势：** PyTorch 已成为学术界和工业界的主流选择。
+
+
+**参考资料：**
+- [PyTorch 官方文档](https://pytorch.org/docs/)
+- [TorchVision 预训练模型](https://pytorch.org/vision/stable/models.html)
+- [Hugging Face Hub](https://huggingface.co/models)
