@@ -22,11 +22,18 @@ export function getMDXComponents(components?: MDXComponents) {
     Accordions,
     h1: (props) => <h1 className="text-gray-200" {...props} />,
     img: (props) => {
+      const src = props.src;
+      // 如果 src 不存在或不是字符串，返回空
+      if (!src || typeof src !== 'string') {
+        return null;
+      }
       // 如果是外部图片，使用原生 img 标签
-      if (props.src?.startsWith('http')) {
+      if (src.startsWith('http')) {
         return (
           <img
             {...props}
+            src={src}
+            alt={props.alt || ''}
             className="rounded-lg w-full h-auto my-4"
             loading="lazy"
           />
@@ -35,7 +42,7 @@ export function getMDXComponents(components?: MDXComponents) {
       // 本地图片使用 Next.js Image 组件
       return (
         <Image
-          {...props}
+          src={src}
           width={800}
           height={600}
           className="rounded-lg w-full h-auto my-4"
