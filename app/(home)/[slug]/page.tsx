@@ -45,7 +45,7 @@ export default async function Page(props: PageProps<'/[slug]'>) {
               </p>
           </div>
         <div className="ml-auto">
-          <p className="font-bold border border-white rounded-full px-4 py-1">
+          <p className="font-bold border border-black dark:border-white rounded-full px-4 py-1">
             {new Date(
               page.data.date ??
                 path.basename(page.path, path.extname(page.path)),
